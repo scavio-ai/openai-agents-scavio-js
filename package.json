@@ -18,7 +18,10 @@
       }
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -29,7 +32,16 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "keywords": ["openai", "openai-agents", "agents", "scavio", "web-search", "serp", "tools", "tavily-alternative"],
+  "keywords": [
+    "openai",
+    "openai-agents",
+    "agents",
+    "scavio",
+    "web-search",
+    "serp",
+    "tools",
+    "tavily-alternative"
+  ],
   "license": "MIT",
   "author": "Scavio <support@scavio.dev>",
   "homepage": "https://scavio.dev",
@@ -41,7 +53,7 @@
     "access": "public"
   },
   "dependencies": {
-    "scavio": "^0.2.1"
+    "scavio": "^0.4.0"
   },
   "peerDependencies": {
     "@openai/agents": ">=0.12.0",
