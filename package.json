@@ -1,6 +1,6 @@
 {
   "name": "openai-agents-scavio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scavio real-time search tools (Google, YouTube, Amazon, Walmart, Reddit, TikTok, Instagram) for the OpenAI Agents SDK",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -18,17 +18,30 @@
       }
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test test/google.test.mjs",
     "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=22.0.0"
   },
-  "keywords": ["openai", "openai-agents", "agents", "scavio", "web-search", "serp", "tools", "tavily-alternative"],
+  "keywords": [
+    "openai",
+    "openai-agents",
+    "agents",
+    "scavio",
+    "web-search",
+    "serp",
+    "tools",
+    "tavily-alternative"
+  ],
   "license": "MIT",
   "author": "Scavio <support@scavio.dev>",
   "homepage": "https://scavio.dev",
@@ -40,7 +53,7 @@
     "access": "public"
   },
   "dependencies": {
-    "scavio": "^0.2.1"
+    "scavio": "^0.4.0"
   },
   "peerDependencies": {
     "@openai/agents": ">=0.12.0",
