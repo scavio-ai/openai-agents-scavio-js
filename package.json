@@ -1,6 +1,6 @@
 {
   "name": "openai-agents-scavio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Scavio real-time search tools (Google, YouTube, Amazon, Walmart, Reddit, TikTok, Instagram) for the OpenAI Agents SDK",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -23,6 +23,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test test/google.test.mjs",
     "prepublishOnly": "npm run build"
   },
   "engines": {

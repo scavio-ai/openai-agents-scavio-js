@@ -40,6 +40,20 @@ const onum = (d: string) => z.number().optional().describe(d);
 const obool = (d: string) => z.boolean().optional().describe(d);
 
 /**
+ * Map the tool's stable public params to the Scavio v2 Google SERP wire params:
+ * country_code -> gl, language -> hl, page -> start ((page - 1) * 10, page > 1).
+ * query, device, and nfpr are v2-native and pass through unchanged.
+ */
+export function googleV2Params(input: Record<string, unknown>): Record<string, unknown> {
+  const { country_code, language, page, ...rest } = input;
+  const out: Record<string, unknown> = { ...rest };
+  if (country_code !== undefined) out.gl = country_code;
+  if (language !== undefined) out.hl = language;
+  if (typeof page === "number" && page > 1) out.start = (page - 1) * 10;
+  return out;
+}
+
+/**
  * Build Scavio tools for an OpenAI Agents SDK Agent.
  *
  * Scavio is a single Search API over Google, YouTube, Amazon, Walmart, Reddit,
@@ -83,18 +97,16 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
       tool(
         "GOOGLE_SEARCH",
         "Scavio Google Search",
-        "Search Google for real-time web results (organic, knowledge graph, news, and more).",
+        "Search Google for real-time web results (organic results, ads, and the AI Overview when present). Costs 1 credit.",
         z.object({
           query: str("The search query."),
-          country_code: ostr("Two-letter country code, e.g. 'us'."),
-          language: ostr("Two-letter language code, e.g. 'en'."),
+          country_code: ostr("Two-letter country of the search, e.g. 'us'."),
+          language: ostr("Two-letter UI language code, e.g. 'en'."),
           page: onum("Result page number (1-based)."),
-          search_type: ostr("Search vertical, e.g. 'search', 'news', 'images'."),
           device: ostr("Device profile: 'desktop' or 'mobile'."),
           nfpr: obool("Disable auto-correction of the query when true."),
-          light_request: obool("Cheaper, lighter response (1 credit instead of 2) when true."),
         }),
-        (i) => client.google.search(i)
+        (i) => client.google.search(googleV2Params(i) as unknown as Parameters<typeof client.google.search>[0])
       )
     );
   }

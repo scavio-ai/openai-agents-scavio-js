@@ -66,7 +66,7 @@ const agent = new Agent({ name: "Search Assistant", mcpServers: [server] });
 
 ## Credits
 
-Most calls cost 1 credit. Reddit and Instagram cost 2 credits, and Google costs 2 unless `light_request: true` (1 credit). See [scavio.dev/docs](https://scavio.dev/docs).
+Most calls cost 1 credit (Google included). Reddit and Instagram cost 2 credits. See [scavio.dev/docs](https://scavio.dev/docs).
 
 ## Links
 
