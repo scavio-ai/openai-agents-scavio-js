@@ -195,13 +195,15 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
       tool(
         "YOUTUBE_SEARCH",
         "Scavio YouTube Search",
-        "Search YouTube for videos, channels, or playlists.",
+        "Search YouTube for videos, channels, or playlists. Costs 2 credits.",
         z.object({
           query: str("The video search query."),
-          upload_date: ostr("Upload date filter, e.g. 'today', 'week', 'month'."),
-          type: ostr("Result type, e.g. 'video', 'channel', 'playlist'."),
-          duration: ostr("Duration filter, e.g. 'short', 'long'."),
-          sort_by: ostr("Sort order for results."),
+          upload_date: ostr("Upload date filter, e.g. 'last_hour', 'today', 'this_week', 'this_month', 'this_year'."),
+          type: ostr("Result type, e.g. 'video', 'channel', 'playlist', 'movie'."),
+          duration: ostr("Duration filter, e.g. 'short', 'medium', 'long'."),
+          sort_by: ostr("Sort order: 'relevance', 'date', 'view_count', 'rating'."),
+          features: z.array(z.string()).optional().describe("Feature filters, e.g. ['hd', '4k', 'subtitles', 'creative_commons', 'live', '360', '3d', 'hdr', 'vr180']."),
+          cursor: ostr("Pagination cursor from a prior response."),
           hd: obool("Restrict to HD videos when true."),
           subtitles: obool("Restrict to videos with subtitles when true."),
           creative_commons: obool("Restrict to Creative Commons videos when true."),
@@ -210,11 +212,143 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
         (i) => client.youtube.search(i)
       ),
       tool(
+        "YOUTUBE_SHORTS",
+        "Scavio YouTube Shorts",
+        "Search YouTube Shorts by keyword. Costs 2 credits.",
+        z.object({
+          query: str("The Shorts search query."),
+          sort_by: ostr("Sort order for results."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.shorts(i)
+      ),
+      tool(
+        "YOUTUBE_SUGGESTIONS",
+        "Scavio YouTube Suggestions",
+        "Fetch YouTube search autocomplete suggestions for a query.",
+        z.object({
+          query: str("The partial search query to autocomplete."),
+          language: ostr("Two-letter language code (default 'en')."),
+          region: ostr("Two-letter region code (default 'US')."),
+        }),
+        (i) => client.youtube.suggestions(i)
+      ),
+      tool(
+        "YOUTUBE_VIDEO",
+        "Scavio YouTube Video",
+        "Fetch full details for a YouTube video (title, author, view count, description, captions, chapters).",
+        z.object({ video_id: str("YouTube video id or a full watch URL.") }),
+        (i) => client.youtube.video(i)
+      ),
+      tool(
         "YOUTUBE_METADATA",
         "Scavio YouTube Metadata",
-        "Fetch metadata for a YouTube video by id.",
-        z.object({ video_id: str("YouTube video id.") }),
-        (i) => client.youtube.metadata(i)
+        "Deprecated alias of scavio_youtube_video. Fetch details for a YouTube video by id.",
+        z.object({ video_id: str("YouTube video id or a full watch URL.") }),
+        (i) => client.youtube.video(i)
+      ),
+      tool(
+        "YOUTUBE_COMMENTS",
+        "Scavio YouTube Comments",
+        "List comments on a YouTube video.",
+        z.object({
+          video_id: str("YouTube video id or a full watch URL."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.comments(i)
+      ),
+      tool(
+        "YOUTUBE_COMMENT_REPLIES",
+        "Scavio YouTube Comment Replies",
+        "List replies to a YouTube comment.",
+        z.object({
+          video_id: str("YouTube video id or a full watch URL."),
+          reply_cursor: str("Reply cursor from a parent comment's reply_cursor."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.commentReplies(i)
+      ),
+      tool(
+        "YOUTUBE_TRANSCRIPT",
+        "Scavio YouTube Transcript",
+        "Fetch a YouTube video's transcript or timed subtitles. Costs 8 credits.",
+        z.object({
+          video_id: str("YouTube video id or a full watch URL."),
+          language: ostr("Transcript language code (default 'en')."),
+          format: ostr("'text' for a plain transcript, 'srt' for timed subtitles."),
+        }),
+        (i) => client.youtube.transcript(i)
+      ),
+      tool(
+        "YOUTUBE_RELATED",
+        "Scavio YouTube Related",
+        "List videos related to a YouTube video.",
+        z.object({
+          video_id: str("YouTube video id or a full watch URL."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.related(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL_SEARCH",
+        "Scavio YouTube Channel Search",
+        "Search YouTube channels by keyword.",
+        z.object({
+          query: str("The channel search query."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.channelSearch(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL",
+        "Scavio YouTube Channel",
+        "Fetch a YouTube channel's details (subscribers, video count, views, links).",
+        z.object({ channel_id: str("YouTube channel id, @handle, or channel URL.") }),
+        (i) => client.youtube.channel(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL_VIDEOS",
+        "Scavio YouTube Channel Videos",
+        "List a YouTube channel's uploaded videos.",
+        z.object({
+          channel_id: str("YouTube channel id."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.channelVideos(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL_SHORTS",
+        "Scavio YouTube Channel Shorts",
+        "List a YouTube channel's Shorts.",
+        z.object({
+          channel_id: str("YouTube channel id."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.channelShorts(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL_COMMUNITY",
+        "Scavio YouTube Channel Community",
+        "List a YouTube channel's community posts.",
+        z.object({
+          channel_id: str("YouTube channel id."),
+          cursor: ostr("Pagination cursor."),
+        }),
+        (i) => client.youtube.channelCommunity(i)
+      ),
+      tool(
+        "YOUTUBE_CHANNEL_RESOLVE",
+        "Scavio YouTube Channel Resolve",
+        "Resolve a YouTube @handle or channel URL to a channel id.",
+        z.object({ channel: str("A channel @handle or channel URL.") }),
+        (i) => client.youtube.channelResolve(i)
+      ),
+      tool(
+        "YOUTUBE_STREAMS",
+        "Scavio YouTube Streams",
+        "Fetch direct playable/downloadable stream URLs for a YouTube video. Costs 3 credits.",
+        z.object({ video_id: str("YouTube video id or a full watch URL.") }),
+        (i) => client.youtube.streams(i)
       )
     );
   }
