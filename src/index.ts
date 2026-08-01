@@ -111,44 +111,43 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
     );
   }
 
+  // Amazon moved upstream in 2026-07: sort_by, pages, category_id, merchant_id,
+  // language, currency, device, zip_code and autoselect_variant no longer exist.
+  // Removed rather than kept as no-ops - sort_by was verified to return the
+  // identical unordered set for every value. `domain` still works on the wire
+  // as a deprecated alias but is not offered: one spelling per param.
   if (all || enableAmazon) {
     tools.push(
       tool(
         "AMAZON_SEARCH",
         "Scavio Amazon Search",
-        "Search Amazon for products matching a query.",
+        "Search Amazon for products matching a query. Results are unsorted and cannot be filtered by category, merchant or price.",
         z.object({
           query: str("The product search query."),
-          domain: ostr("Amazon domain, e.g. 'amazon.com'."),
-          country: ostr("Two-letter country code."),
-          language: ostr("Two-letter language code."),
-          currency: ostr("Currency code, e.g. 'USD'."),
-          device: ostr("Device profile: 'desktop' or 'mobile'."),
-          sort_by: ostr("Sort order for results."),
-          start_page: onum("First page to return."),
-          pages: onum("Number of pages to return."),
-          category_id: ostr("Restrict to an Amazon category id."),
-          merchant_id: ostr("Restrict to a merchant id."),
-          zip_code: ostr("Delivery ZIP/postal code."),
-          autoselect_variant: obool("Auto-select the best product variant when true."),
+          country: ostr("Marketplace country code (ISO 3166-1 alpha-2), not a domain: 'us' (default), 'gb' (the UK is gb, not uk), 'ca', 'de', 'fr', 'es', 'it', 'jp', 'in', 'au', 'br', 'mx', 'nl', 'pl', 'se', 'sg', 'ae', 'sa', 'eg', 'cn', 'be', 'tr'. An unknown code falls back to us."),
+          page: onum("Result page, 1-based. One page per call, 1 credit each."),
         }),
         (i) => client.amazon.search(i)
       ),
       tool(
         "AMAZON_PRODUCT",
         "Scavio Amazon Product",
-        "Fetch full Amazon product details by ASIN.",
+        "Fetch full Amazon product details by ASIN. price is the buy-box price only.",
         z.object({
           asin: str("Amazon Standard Identification Number (ASIN) of the product."),
-          domain: ostr("Amazon domain, e.g. 'amazon.com'."),
-          country: ostr("Two-letter country code."),
-          language: ostr("Two-letter language code."),
-          currency: ostr("Currency code, e.g. 'USD'."),
-          device: ostr("Device profile: 'desktop' or 'mobile'."),
-          zip_code: ostr("Delivery ZIP/postal code."),
-          autoselect_variant: obool("Auto-select the best product variant when true."),
+          country: ostr("Marketplace country code (ISO 3166-1 alpha-2), not a domain: 'us' (default), 'gb' (the UK is gb, not uk), 'ca', 'de', 'fr', 'es', 'it', 'jp', 'in', 'au', 'br', 'mx', 'nl', 'pl', 'se', 'sg', 'ae', 'sa', 'eg', 'cn', 'be', 'tr'. An unknown code falls back to us."),
         }),
         (i) => client.amazon.product(i)
+      ),
+      tool(
+        "AMAZON_OFFERS",
+        "Scavio Amazon Offers",
+        "List every seller offer for one Amazon ASIN: price, seller, condition, shipping, and which offer holds the buy box. Page 1 only. Use this instead of AMAZON_PRODUCT when comparing sellers or checking who owns the buy box.",
+        z.object({
+          asin: str("Amazon Standard Identification Number (ASIN) of the product."),
+          country: ostr("Marketplace country code (ISO 3166-1 alpha-2), not a domain: 'us' (default), 'gb' (the UK is gb, not uk), 'ca', 'de', 'fr', 'es', 'it', 'jp', 'in', 'au', 'br', 'mx', 'nl', 'pl', 'se', 'sg', 'ae', 'sa', 'eg', 'cn', 'be', 'tr'. An unknown code falls back to us."),
+        }),
+        (i) => client.amazon.offers(i)
       )
     );
   }

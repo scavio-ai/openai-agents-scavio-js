@@ -2,6 +2,17 @@
 
 [Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — Google, YouTube, Amazon, Walmart, Reddit, TikTok, and Instagram, with one API key.
 
+> **Amazon changed (breaking).** The upstream provider moved in 2026-07:
+> `domain` is replaced by `country`, a two-letter marketplace code (`us`, `gb`
+> -- the UK is `gb`, not `uk` -- `de`, `jp`, ...), and `sort_by`, `pages`,
+> `category_id`, `merchant_id`, `language`, `currency`, `device`, `zip_code`
+> and `autoselect_variant` are gone. The marketplace ignores all of them
+> (`sort_by` returns the identical unordered set for every value), so they are
+> removed rather than kept as silent no-ops. Rank and filter results yourself.
+> A third Amazon tool arrived with the move: `scavio_amazon_offers` lists every
+> seller offering an ASIN -- price, condition, shipping, and which offer holds
+> the buy box. 1 credit, same as the other two.
+
 ## Install
 
 ```bash
@@ -46,7 +57,7 @@ Pass `{ all: true }` to register every tool regardless of the individual flags.
 
 ## Tools
 
-`buildScavioTools()` returns 32 tools, one per Scavio endpoint, named `scavio_<provider>_<action>` (e.g. `scavio_google_search`, `scavio_amazon_product`). Each returns the structured Scavio JSON response.
+`buildScavioTools()` returns one tool per Scavio endpoint, named `scavio_<provider>_<action>` (e.g. `scavio_google_search`, `scavio_amazon_product`). Each returns the structured Scavio JSON response.
 
 ## Use every endpoint via MCP
 
