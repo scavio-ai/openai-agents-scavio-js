@@ -1,33 +1,32 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { googleV2Params } from "../dist/index.js";
+import { buildScavioTools } from "../dist/index.js";
 
-test("maps v1 params to v2 (gl/hl/start)", () => {
-  assert.deepEqual(
-    googleV2Params({
-      query: "ai agents",
-      country_code: "us",
-      language: "en",
-      page: 3,
-      device: "mobile",
-      nfpr: true,
-    }),
-    { query: "ai agents", gl: "us", hl: "en", start: 20, device: "mobile", nfpr: true },
-  );
+function googleSearch() {
+  const tools = buildScavioTools({ apiKey: "test" });
+  return tools.find((t) => t.name === "scavio_google_search");
+}
+
+// /api/v1/google was retired 2026-08-04 and returns 410. Google params are now
+// declared natively as v2 rather than mapped from the v1 vocabulary: `start` is
+// a 0-based result offset, not a 1-based page, so a silent remap of `page`
+// would have fetched the wrong page.
+test("google search exposes v2 params natively", () => {
+  const props = Object.keys(googleSearch().parameters.properties);
+  for (const p of ["query", "gl", "hl", "start"]) {
+    assert.ok(props.includes(p), `missing v2 param ${p}`);
+  }
 });
 
-test("page 1 omits start", () => {
-  assert.deepEqual(googleV2Params({ query: "x", page: 1 }), { query: "x" });
+test("the v1 vocabulary is gone, not mapped", () => {
+  const props = Object.keys(googleSearch().parameters.properties);
+  for (const dead of ["country_code", "language", "page", "search_type", "light_request"]) {
+    assert.ok(!props.includes(dead), `v1 param ${dead} still present`);
+  }
 });
 
-test("no page omits start", () => {
-  assert.deepEqual(googleV2Params({ query: "x" }), { query: "x" });
-});
-
-test("v2-native params pass through unchanged", () => {
-  assert.deepEqual(
-    googleV2Params({ query: "x", device: "desktop", nfpr: false }),
-    { query: "x", device: "desktop", nfpr: false },
-  );
+test("start is documented as an offset", () => {
+  const d = googleSearch().parameters.properties.start.description;
+  assert.match(d, /offset/i);
 });
