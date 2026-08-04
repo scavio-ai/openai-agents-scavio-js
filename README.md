@@ -1,6 +1,6 @@
 # openai-agents-scavio
 
-[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — Google, YouTube, Amazon, Walmart, Reddit, TikTok, and Instagram, with one API key.
+[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — Google, YouTube, Amazon, Walmart, Reddit, TikTok, and Instagram, with one API key. Scavio also covers TikTok Shop, X and LinkedIn; reach those through the [hosted MCP server](#use-every-endpoint-via-mcp).
 
 > **Amazon changed (breaking).** The upstream provider moved in 2026-07:
 > `domain` is replaced by `country`, a two-letter marketplace code (`us`, `gb`
@@ -21,7 +21,7 @@ npm install openai-agents-scavio @openai/agents zod
 
 ## Setup
 
-Get a Scavio API key from the [Scavio Dashboard](https://dashboard.scavio.dev) (new accounts get free credits, no credit card). Set `SCAVIO_API_KEY` or pass `{ apiKey }`.
+Get a Scavio API key from the [Scavio Dashboard](https://dashboard.scavio.dev) (new accounts get 50 free credits, no credit card). Set `SCAVIO_API_KEY` or pass `{ apiKey }`.
 
 ## Usage
 
@@ -61,7 +61,7 @@ Pass `{ all: true }` to register every tool regardless of the individual flags.
 
 ## Use every endpoint via MCP
 
-For the full Scavio API with no install, point the Agents SDK at the hosted MCP server:
+The tools above cover seven platforms. For the full Scavio API — every endpoint across Google, YouTube, Amazon, Walmart, Reddit, TikTok, TikTok Shop, Instagram, X and LinkedIn, with no install — point the Agents SDK at the hosted MCP server:
 
 ```typescript
 import { Agent, MCPServerStreamableHttp } from "@openai/agents";
@@ -77,7 +77,18 @@ const agent = new Agent({ name: "Search Assistant", mcpServers: [server] });
 
 ## Credits
 
-Most calls cost 1 credit (Google included). Instagram costs 8-10 credits per call, except user posts which costs 2. See [scavio.dev/docs](https://scavio.dev/docs).
+Most calls cost 1 credit, Google and Reddit included. The exceptions:
+
+| Tool | Credits |
+|---|---|
+| `scavio_youtube_search`, `scavio_youtube_shorts` | 2 |
+| `scavio_youtube_streams` | 3 |
+| `scavio_youtube_transcript` | 8 |
+| `scavio_instagram_user_posts` | 2 |
+| `scavio_instagram_post`, `scavio_instagram_comment_replies` | 8 |
+| every other `scavio_instagram_*` | 10 |
+
+See [scavio.dev/docs](https://scavio.dev/docs).
 
 ## Links
 
