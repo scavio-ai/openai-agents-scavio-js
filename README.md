@@ -169,7 +169,7 @@ YouTube and LinkedIn ones. The exceptions:
 | Home Depot, Google Play, Tripadvisor, Yelp, Indeed, Capterra (all tools) | 2 |
 | `scavio_youtube_search`, `scavio_youtube_shorts` | 2 |
 | `scavio_youtube_streams` | 3 |
-| `scavio_youtube_transcript` | 8 |
+| `scavio_youtube_transcript` | 5 |
 | G2 (all tools) | 5 |
 | `scavio_instagram_user_posts` | 2 |
 | `scavio_instagram_post`, `scavio_instagram_comment_replies` | 8 |
