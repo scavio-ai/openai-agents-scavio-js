@@ -8,7 +8,7 @@
  * Capterra, Google Ads Transparency and the Meta Ad Library - plus the top-level
  * `extract` endpoint that reads any URL as HTML, Markdown or plain text.
  *
- * 188 tools over the 195 endpoints the Scavio SDK exposes. The seven that are not
+ * 193 tools over the Scavio SDK's endpoints. The seven that are not
  * registered are dead or duplicate surfaces: /youtube/metadata (a deprecated alias
  * of /youtube/video), /amazon/options (a keyless static marketplace list, not a
  * search), and the five LinkedIn endpoints the upstream provider withdrew, which
@@ -65,6 +65,17 @@ export interface BuildScavioToolsOptions {
   enableGoogleAds?: boolean;
   enableMetaAds?: boolean;
   enableExtract?: boolean;
+  /**
+   * Website map, crawl and batch extract (five tools: scavio_map_website,
+   * scavio_crawl_website, scavio_crawl_status, scavio_batch_extract,
+   * scavio_batch_status). Off by default: a crawl bills per page.
+   */
+  enableCrawl?: boolean;
+  /**
+   * Milliseconds between progress polls while scavio_crawl_website or
+   * scavio_batch_extract waits for its job. Default 3000.
+   */
+  pollIntervalMs?: number;
   /** Register every tool, ignoring the individual flags. */
   all?: boolean;
 }
@@ -88,6 +99,91 @@ const GL = ostr("Country of the search (ISO 3166-1 alpha-2), e.g. 'us'.");
 const GOOGLE_DOMAIN = ostr("Regional Google domain, e.g. 'google.co.uk'.");
 const LOCATION = ostr("Canonical location name; auto-encoded to a UULE string.");
 const UULE = ostr("Pre-encoded UULE location string (takes priority over location).");
+
+// ---------------------------------------------------------------------------
+// Website map, crawl and batch: the multi-page members of the Extract family.
+//
+// Map answers in one call. Crawl and batch are background jobs: the start tools
+// post the job, then wait up to wait_seconds (default 45, max 300) for it to
+// finish, polling progress without page content, and return the job's status
+// with its first page of results either way. A job still running when the wait
+// ends keeps going server-side; read the rest with the matching status tool.
+// ---------------------------------------------------------------------------
+
+const JOB_POLL_INTERVAL_MS = 3_000;
+const JOB_WAIT_DEFAULT_SECONDS = 45;
+const JOB_WAIT_MAX_SECONDS = 300;
+const JOB_RESULTS_DEFAULT_LIMIT = 10;
+const JOB_TERMINAL = new Set(["completed", "failed", "cancelled"]);
+
+type JobQuery = {
+  cursor?: string;
+  limit?: number;
+  status?: "succeeded" | "failed" | "skipped";
+  include_content?: boolean;
+};
+type JobPayload = { data?: { id?: string; status?: string } } & Record<string, unknown>;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Poll a job (content-free) until it finishes or the wait runs out, then read one results page. */
+async function waitForJob(
+  status: (id: string, query: JobQuery) => Promise<unknown>,
+  id: string,
+  waitSeconds: number,
+  pollMs: number,
+  query: JobQuery,
+): Promise<Record<string, unknown>> {
+  const deadline = Date.now() + Math.max(0, Math.min(waitSeconds, JOB_WAIT_MAX_SECONDS)) * 1000;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await sleep(Math.min(pollMs, remaining));
+    const probe = (await status(id, { limit: 1, include_content: false })) as JobPayload;
+    if (JOB_TERMINAL.has(String(probe?.data?.status))) break;
+  }
+  return (await status(id, query)) as Record<string, unknown>;
+}
+
+/** Split the tool-only fields (wait_seconds, limit, include_content) off a start-tool input. */
+function splitJobInput<T extends { wait_seconds?: number; limit?: number; include_content?: boolean }>(input: T) {
+  const { wait_seconds, limit, include_content, ...body } = input;
+  const query: JobQuery = { limit: limit ?? JOB_RESULTS_DEFAULT_LIMIT };
+  if (include_content !== undefined) query.include_content = include_content;
+  return { body, query, wait: wait_seconds ?? JOB_WAIT_DEFAULT_SECONDS };
+}
+
+const MODE_DESCRIPTION =
+  "Fetch tier, and the price-bearing parameter: 'normal' is the standard fetch, 'advanced' renders JavaScript-built pages, 'ultra' reaches the hardest pages. Server default 'normal'.";
+const PATHS_DESCRIPTION =
+  "Path globs (max 20). '*' matches within one path segment, '**' across segments; a pattern without wildcards matches that path and everything under it. Example: ['/blog/**'].";
+const JOB_PRICE =
+  "Billed per SUCCESSFUL page at Extract's price for the mode: normal and advanced 1 credit, ultra 2 credits. Failed and skipped pages are free, and if the balance runs out the job stops cleanly.";
+
+const jobWait = z
+  .number()
+  .int()
+  .min(0)
+  .max(JOB_WAIT_MAX_SECONDS)
+  .optional()
+  .describe("Seconds to wait for the job to finish before returning, 0-300 (default 45). 0 returns the job id at once. A job still running when the wait ends keeps going; read it later with its status tool.");
+const jobLimit = z
+  .number()
+  .int()
+  .min(1)
+  .max(100)
+  .optional()
+  .describe("Results per response, 1-100 (default 10, to keep page content inside the context window); page on with next_cursor.");
+const jobIncludeContent = obool("Set false to list results without their page content (default true).");
+const jobFormat = z.enum(["html", "markdown", "text"]).optional().describe("Format for each page, as on Extract: html, markdown or text (default markdown).");
+const jobMode = z.enum(["normal", "advanced", "ultra"]).optional().describe(MODE_DESCRIPTION);
+const jobStatusParams = z.object({
+  id: str("Job id returned when the job was started (data.id)."),
+  cursor: ostr("next_cursor from the previous response, to read the next page."),
+  limit: jobLimit,
+  status: z.enum(["succeeded", "failed", "skipped"]).optional().describe("Only results with this status."),
+  include_content: jobIncludeContent,
+});
 
 const TIKTOK_SHOP_REGION = ostr(
   "Marketplace region: 'US' (default), 'GB', 'SG', 'MY', 'PH', 'TH', 'VN', 'ID'.",
@@ -136,6 +232,8 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
     enableGoogleAds = true,
     enableMetaAds = true,
     enableExtract = true,
+    enableCrawl = false,
+    pollIntervalMs = JOB_POLL_INTERVAL_MS,
     all = false,
   } = options;
 
@@ -2571,9 +2669,101 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
         z.object({
           url: str("Page to read (1-2048 characters). http(s) only; a bare host is upgraded to https, and loopback, private, link-local and metadata hosts are rejected with a 400."),
           format: z.enum(["html", "markdown", "text"]).optional().describe("Output format: 'html' is the raw page, 'markdown' a readability extraction, 'text' that markdown flattened to plain text (server default 'markdown')."),
-          mode: z.enum(["normal", "advanced", "ultra"]).optional().describe("Fetch tier, and the price-bearing parameter: 'normal' plain datacenter fetch (1 credit), 'advanced' full browser render (1 credit), 'ultra' the hardest-target tier (2 credits). Server default 'normal'."),
+          mode: z.enum(["normal", "advanced", "ultra"]).optional().describe("Fetch tier, and the price-bearing parameter: 'normal' is the standard fetch (1 credit), 'advanced' renders JavaScript-built pages (1 credit), 'ultra' reaches the hardest pages (2 credits). Server default 'normal'."),
         }),
         (i: SdkOpts<typeof client.extract>) => client.extract(i)
+      )
+    );
+  }
+
+  if (all || enableCrawl) {
+    const crawlStatus = (id: string, q: JobQuery) => client.extract.crawlStatus(id, q);
+    const batchStatus = (id: string, q: JobQuery) => client.extract.batchStatus(id, q);
+    tools.push(
+      tool(
+        "MAP_WEBSITE",
+        "Scavio Map Website",
+        "List a website's page URLs, gathered from its sitemaps and its start page, deduplicated, filtered by path or search words and limited: { url, links: [{ url, source, lastmod }], total_found, returned, truncated }. Pages the site's robots.txt disallows are left out. Use it to find the right pages before extracting or crawling. Costs 1 credit in normal mode; advanced costs up to 2 credits and ultra up to 10, priced by what the call needed.",
+        z.object({
+          url: str("The site to map. A bare host is upgraded to https."),
+          search: ostr("Only return URLs containing every word of this text (case-insensitive)."),
+          limit: z.number().int().min(1).max(5000).optional().describe("Maximum links to return, 1-5000. Default 1000 (or the plan's limit if lower: Free 500, PAYG 1,000, paid plans 5,000)."),
+          sitemap: z.enum(["include", "only", "skip"]).optional().describe("'include' combines the site's sitemaps with the start page's links (default); 'only' uses sitemaps alone; 'skip' uses page links alone."),
+          include_subdomains: obool("Also return URLs on subdomains of the site (default false)."),
+          include_paths: z.array(z.string()).optional().describe("Keep only URLs matching these. " + PATHS_DESCRIPTION),
+          exclude_paths: z.array(z.string()).optional().describe("Drop URLs matching these. " + PATHS_DESCRIPTION),
+          ignore_query_parameters: obool("Treat URLs that differ only by query string as one URL (default true)."),
+          mode: jobMode,
+        }),
+        async (i: SdkOpts<typeof client.extract.map>) =>
+          (await client.extract.map(i)) as unknown as Record<string, unknown>
+      ),
+      tool(
+        "CRAWL_WEBSITE",
+        "Scavio Crawl Website",
+        "Crawl a website from one start URL: same-site pages are discovered and extracted breadth-first within the page, depth and path limits, each returned as Markdown, text or HTML. Pages the site's robots.txt disallows are skipped. Waits up to wait_seconds (default 45) and returns { id, status, pages, credits_used, results, next_cursor }; if status is still queued or running, call scavio_crawl_status with the id later. " + JOB_PRICE,
+        z.object({
+          url: str("Where the crawl starts. Only pages on the same site are crawled."),
+          max_pages: z.number().int().min(1).max(10000).optional().describe("Maximum pages to fetch. Default 100. Plan limits: Free 10, PAYG 100, Project 500, Bootstrap 2,000, Startup 5,000, Growth 10,000."),
+          max_depth: z.number().int().min(0).max(10).optional().describe("How many links away from the start page to follow, 0-10 (default 3). 0 fetches only the start page."),
+          include_paths: z.array(z.string()).optional().describe("Crawl only paths matching these. " + PATHS_DESCRIPTION),
+          exclude_paths: z.array(z.string()).optional().describe("Skip paths matching these. " + PATHS_DESCRIPTION),
+          allow_subdomains: obool("Also crawl subdomains of the site (default false)."),
+          ignore_query_parameters: obool("Treat URLs that differ only by query string as one page (default true)."),
+          sitemap: z.enum(["include", "skip", "only"]).optional().describe("'include' also starts from the site's sitemap (default); 'skip' follows links only; 'only' fetches sitemap pages without following links."),
+          format: jobFormat,
+          mode: jobMode,
+          wait_seconds: jobWait,
+          limit: jobLimit,
+          include_content: jobIncludeContent,
+        }),
+        async (input) => {
+          const { body, query, wait } = splitJobInput(input);
+          const created = (await client.extract.crawl(
+            body as SdkOpts<typeof client.extract.crawl>
+          )) as unknown as JobPayload;
+          const id = created?.data?.id;
+          if (!id || wait <= 0) return created;
+          return waitForJob(crawlStatus, id, wait, pollIntervalMs, query);
+        }
+      ),
+      tool(
+        "CRAWL_STATUS",
+        "Scavio Crawl Status",
+        "Read a crawl's progress and its page results by job id, paged by cursor: { status, stopped_reason, pages, credits_used, results: [{ url, status, content }], next_cursor }. Results are kept for 3 days after the crawl finishes. Free: reading a job costs 0 credits.",
+        jobStatusParams,
+        async ({ id, limit, ...q }) =>
+          (await crawlStatus(id, { ...q, limit: limit ?? JOB_RESULTS_DEFAULT_LIMIT })) as unknown as Record<string, unknown>
+      ),
+      tool(
+        "BATCH_EXTRACT",
+        "Scavio Batch Extract",
+        "Extract a list of URLs (up to 1,000, plan-limited) in one job, each returned as Markdown, text or HTML exactly like scavio_extract. Waits up to wait_seconds (default 45) and returns { id, status, pages, credits_used, results, next_cursor }; if status is still queued or running, call scavio_batch_status with the id later. " + JOB_PRICE,
+        z.object({
+          urls: z.array(z.string()).min(1).max(1000).describe("The pages to extract (duplicates removed). Plan limits: Free 10, PAYG 50, Project 100, Bootstrap 500, Startup and Growth 1,000."),
+          format: jobFormat,
+          mode: jobMode,
+          wait_seconds: jobWait,
+          limit: jobLimit,
+          include_content: jobIncludeContent,
+        }),
+        async (input) => {
+          const { body, query, wait } = splitJobInput(input);
+          const created = (await client.extract.batch(
+            body as SdkOpts<typeof client.extract.batch>
+          )) as unknown as JobPayload;
+          const id = created?.data?.id;
+          if (!id || wait <= 0) return created;
+          return waitForJob(batchStatus, id, wait, pollIntervalMs, query);
+        }
+      ),
+      tool(
+        "BATCH_STATUS",
+        "Scavio Batch Status",
+        "Read a batch extract's progress and its page results by job id, paged by cursor: { status, pages, credits_used, results: [{ url, status, content }], next_cursor }. Results are kept for 3 days after the batch finishes. Free: reading a job costs 0 credits.",
+        jobStatusParams,
+        async ({ id, limit, ...q }) =>
+          (await batchStatus(id, { ...q, limit: limit ?? JOB_RESULTS_DEFAULT_LIMIT })) as unknown as Record<string, unknown>
       )
     );
   }

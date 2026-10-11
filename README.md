@@ -1,8 +1,8 @@
 # openai-agents-scavio
 
-[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — **188 tools across 31 platforms and one URL reader**, with one API key.
+[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — **193 tools across 31 platforms, a URL reader and website map / crawl / batch**, with one API key.
 
-Google, YouTube, Amazon, Walmart, eBay, Target, Home Depot, Reddit, X, TikTok, TikTok Shop, Instagram, Threads, LinkedIn, Kuaishou, Zillow, Redfin, Booking.com, Airbnb, Tripadvisor, Yelp, Indeed, Glassdoor, the Apple App Store, Google Play, SEC EDGAR, Companies House, G2, Capterra, Google Ads Transparency and the Meta Ad Library — plus `scavio_extract`, which reads any URL as HTML, Markdown or plain text.
+Google, YouTube, Amazon, Walmart, eBay, Target, Home Depot, Reddit, X, TikTok, TikTok Shop, Instagram, Threads, LinkedIn, Kuaishou, Zillow, Redfin, Booking.com, Airbnb, Tripadvisor, Yelp, Indeed, Glassdoor, the Apple App Store, Google Play, SEC EDGAR, Companies House, G2, Capterra, Google Ads Transparency and the Meta Ad Library — plus `scavio_extract`, which reads any URL as HTML, Markdown or plain text, and five opt-in tools that map a site's URLs, crawl a whole site, or extract a list of URLs in one job.
 
 Nothing is held back for the MCP server any more: every live Scavio endpoint is a tool in this package.
 
@@ -12,7 +12,7 @@ Nothing is held back for the MCP server any more: every live Scavio endpoint is 
 npm install openai-agents-scavio @openai/agents zod
 ```
 
-Requires `scavio@^0.15.0` — the version that introduced the 21 new platform namespaces and the top-level `extract` method. An older SDK cannot resolve most of the tools below.
+Requires `scavio@^0.23.0` — the version that added `extract.map`, `extract.crawl` and `extract.batch` behind the callable `extract`. An older SDK cannot resolve the website tools.
 
 ## Setup
 
@@ -36,8 +36,9 @@ console.log(result.finalOutput);
 
 ### Pick your platforms
 
-188 tools is far more than any one agent should carry. Every platform is gated by
-an `enable*` flag, all defaulting to `true`, so disable what you do not need:
+193 tools is far more than any one agent should carry. Every platform is gated by
+an `enable*` flag, all defaulting to `true` except `enableCrawl`, so disable what
+you do not need:
 
 ```typescript
 const tools = buildScavioTools({
@@ -73,6 +74,7 @@ Pass `{ all: true }` to register every tool regardless of the individual flags.
 | `enableHomeDepot` | 3 | `enableZillow` | 3 |
 | `enableBooking` | 3 | `enableTripadvisor` | 4 |
 | `enableIndeed` | 4 | `enableExtract` | 1 |
+| `enableCrawl` (default `false`) | 5 | | |
 
 ## Tools
 
@@ -106,6 +108,55 @@ resolver alongside the endpoint, or it will guess an id and get a 404:
 | Google Ads Transparency | `scavio_google_ads_advertisers` | `scavio_google_ads_search`, `scavio_google_ads_creative` |
 | Companies House | `scavio_companies_house_search` | `scavio_companies_house_officers`, ... |
 
+## Map, crawl and batch
+
+Five opt-in tools for whole sites, behind `enableCrawl` (off by default, because a
+crawl bills per page):
+
+| Tool | What it does | Credits |
+|---|---|---|
+| `scavio_map_website` | List a site's page URLs from its sitemaps and start page, deduplicated and filtered by path or search words | 1 (normal mode; advanced up to 2, ultra up to 10) |
+| `scavio_crawl_website` | Crawl a site from one URL; every same-site page as Markdown, text or HTML | per successful page |
+| `scavio_crawl_status` | A crawl's progress and page results, cursor-paged | free |
+| `scavio_batch_extract` | Extract a list of URLs (up to 1,000, plan-limited) in one job | per successful page |
+| `scavio_batch_status` | A batch's progress and page results, cursor-paged | free |
+
+Map answers in one call. Crawl and batch run as background jobs: the start tool
+posts the job and then **waits up to `wait_seconds` (default 45, max 300)** for
+it to finish, returning the job's status with its first page of results (10 by
+default, `limit` up to 100) either way. A job still `queued` or `running` when
+the wait ends keeps going server-side: read the rest later with the matching
+status tool, the returned `data.id` and `next_cursor`. That keeps an agent turn
+bounded while a large crawl (up to 6 hours) runs on.
+
+```typescript
+const tools = buildScavioTools({ enableCrawl: true }); // adds the five tools below
+
+// What the agent calls, with the arguments it would send:
+// scavio_map_website({ url: "https://hono.dev/docs", limit: 50 })
+// scavio_crawl_website({ url: "https://hono.dev/docs", max_pages: 25, include_paths: ["/docs/**"] })
+//   -> { data: { id, status: "completed" | "running", pages, credits_used, results, next_cursor } }
+// scavio_crawl_status({ id, cursor: next_cursor })
+// scavio_batch_extract({ urls: ["https://example.com/", "https://hono.dev/docs/getting-started/basic"] })
+```
+
+Tune how often a waiting tool polls with `pollIntervalMs` (default 3000).
+
+**Pricing.** Crawl and batch bill **per successful page** at Extract's price for
+the mode: `normal` (the standard fetch) and `advanced` (renders JavaScript-built
+pages) 1 credit, `ultra` (the hardest pages) 2. Failed and skipped pages are
+free, and if your balance runs out the job stops cleanly with
+`stopped_reason: "insufficient_credits"`. Reading a job is free. Crawl and map
+obey the site's robots.txt, and results are kept for 3 days.
+
+**Plan limits** (pages per crawl / active jobs / URLs per batch): Free 10/1/10,
+PAYG 100/1/50, Project 500/2/100, Bootstrap 2,000/3/500, Startup 5,000/5/1,000,
+Growth 10,000/10/1,000.
+
+Cancellation, webhooks (signed `Scavio-Signature`) and idempotency keys exist in
+the `scavio` SDK (`extract.cancelCrawl`, `webhook_url`, `idempotencyKey`) and the
+[REST API](https://scavio.dev/docs/extract), but are deliberately not agent tools.
+
 ## Credits
 
 Most tools cost 1 credit per call: every Google, Amazon, Reddit, X, TikTok, TikTok
@@ -126,7 +177,7 @@ YouTube and LinkedIn ones. The exceptions:
 | `scavio_linkedin_person_posts`, `scavio_linkedin_company_posts`, `scavio_linkedin_post_comments`, `scavio_linkedin_search_jobs` | 10 |
 | `scavio_linkedin_job` | 30 |
 
-Four surfaces are **body-priced** — the cost depends on what you send, not on
+These surfaces are **body-priced** — the cost depends on what you send, not on
 which tool you call:
 
 | Tool | Credits |
@@ -135,6 +186,8 @@ which tool you call:
 | `scavio_threads_*` | 2 addressed by `user_id`, 4 by `username` |
 | `scavio_kuaishou_*` | per endpoint: 1, 2, 10, or 40 for `scavio_kuaishou_videos_batch` |
 | `scavio_extract` | 1 on `mode: "normal"` or `"advanced"`, 2 on `"ultra"` |
+| `scavio_map_website` | 1 on `mode: "normal"`; up to 2 on `"advanced"`, up to 10 on `"ultra"` |
+| `scavio_crawl_website`, `scavio_batch_extract` | per successful page: 1 on `"normal"` or `"advanced"`, 2 on `"ultra"`; the status tools are free |
 
 Each tool's own description states its price. See [scavio.dev/docs](https://scavio.dev/docs).
 

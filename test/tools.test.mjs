@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { buildScavioTools } from "../dist/index.js";
 
-const TOTAL_TOOLS = 188;
+const TOTAL_TOOLS = 193;
 
 // Tool counts per enable* flag. The list doubles as the flag inventory: if a
 // platform ships without an entry here, allOff() leaves it enabled and
@@ -41,6 +41,7 @@ const PLATFORM_COUNTS = {
   enableGoogleAds: 3,
   enableMetaAds: 3,
   enableExtract: 1,
+  enableCrawl: 5,
 };
 
 const allOff = () =>
@@ -238,4 +239,10 @@ test("lookup-first platforms ship their resolver", () => {
   ]) {
     assert.ok(tools.has(resolver), resolver);
   }
+});
+
+test("crawl tools are opt-in: the default build has none of them", () => {
+  const names = buildScavioTools({ apiKey: "test" }).map((t) => t.name);
+  assert.equal(names.length, TOTAL_TOOLS - 5);
+  assert.ok(!names.some((n) => /map_website|crawl|batch_/.test(n)));
 });
