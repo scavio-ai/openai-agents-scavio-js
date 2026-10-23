@@ -8,7 +8,7 @@
  * Capterra, Google Ads Transparency and the Meta Ad Library - plus the top-level
  * `extract` endpoint that reads any URL as HTML, Markdown or plain text.
  *
- * 193 tools over the Scavio SDK's endpoints. The seven that are not
+ * 194 tools over the Scavio SDK's endpoints. The seven that are not
  * registered are dead or duplicate surfaces: /youtube/metadata (a deprecated alias
  * of /youtube/video), /amazon/options (a keyless static marketplace list, not a
  * search), and the five retired LinkedIn endpoints, which
@@ -1764,7 +1764,7 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
           page: onum("Results page, 1-based."),
           count: onum("Results per page, 1-28. Defaults to 24; Target rejects anything above 28 outright."),
           sort: z.enum(["relevance", "featured", "price_low", "price_high", "rating_high", "best_seller", "newest"]).optional().describe("Result sort order. Defaults to 'relevance'. One of: relevance, featured, price_low, price_high, rating_high, best_seller, newest."),
-          store_id: ostr("Numeric Target store id whose prices and availability the response reflects. Defaults to '3991', the store target.com uses with no store context."),
+          store_id: ostr("Numeric Target store id whose prices the response reflects. Defaults to '3991', the store target.com uses with no store context."),
         }),
         (i: SdkOpts<typeof client.target.search>) => client.target.search(i)
       ),
@@ -1777,7 +1777,7 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
           page: onum("Results page, 1-based."),
           count: onum("Results per page, 1-28. Defaults to 24; Target rejects anything above 28 outright."),
           sort: z.enum(["relevance", "featured", "price_low", "price_high", "rating_high", "best_seller", "newest"]).optional().describe("Result sort order. Defaults to 'relevance'. One of: relevance, featured, price_low, price_high, rating_high, best_seller, newest."),
-          store_id: ostr("Numeric Target store id whose prices and availability the response reflects. Defaults to '3991'."),
+          store_id: ostr("Numeric Target store id whose prices the response reflects. Defaults to '3991'."),
         }),
         (i: SdkOpts<typeof client.target.category>) => client.target.category(i)
       ),
@@ -1787,7 +1787,7 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
         "Target product details by TCIN: price, rating, images, specifications, variants, return policy, fulfillment. seller_id/seller_name are null for stock sold by Target. Costs 1 credit.",
         z.object({
           tcin: str("Target catalog id (tcin, e.g. '1010453160'). A colour/size child tcin is answered by its variation parent, with the child present in 'variants'."),
-          store_id: ostr("Numeric Target store id whose prices and availability the response reflects. Defaults to '3991'."),
+          store_id: ostr("Numeric Target store id whose prices the response reflects. Defaults to '3991'."),
         }),
         (i: SdkOpts<typeof client.target.product>) => client.target.product(i)
       ),
@@ -1798,9 +1798,21 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
         z.object({
           tcin: str("Target catalog id (tcin, e.g. '1010453160')."),
           limit: onum("Trim the returned reviews to at most this many (1 or greater). Target publishes 8 anonymously and offers no paging, so this only trims."),
-          store_id: ostr("Numeric Target store id whose prices and availability the response reflects. Defaults to '3991'."),
+          store_id: ostr("Numeric Target store id whose prices the response reflects. Defaults to '3991'."),
         }),
         (i: SdkOpts<typeof client.target.reviews>) => client.target.reviews(i)
+      ),
+      tool(
+        "TARGET_AVAILABILITY",
+        "Scavio Target Availability",
+        "In-store stock for a Target product at every store near a ZIP: units available, in-store, pickup, curbside and ship-to-store status, distance, address and hours. Costs 1 credit.",
+        z.object({
+          tcin: str("Target catalog id (tcin, e.g. '85978609')."),
+          zip: str("5-digit US ZIP code to search around."),
+          radius: onum("Search radius in miles, 1-100. Defaults to 25. At most 20 stores."),
+          store_id: ostr("Return only this Target store. It must be within radius of zip."),
+        }),
+        (i: SdkOpts<typeof client.target.availability>) => client.target.availability(i)
       )
     );
   }

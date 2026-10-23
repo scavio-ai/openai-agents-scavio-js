@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { buildScavioTools } from "../dist/index.js";
 
-const TOTAL_TOOLS = 193;
+const TOTAL_TOOLS = 194;
 
 // Tool counts per enable* flag. The list doubles as the flag inventory: if a
 // platform ships without an entry here, allOff() leaves it enabled and
@@ -22,7 +22,7 @@ const PLATFORM_COUNTS = {
   enableThreads: 6,
   enableKuaishou: 14,
   enableEbay: 3,
-  enableTarget: 4,
+  enableTarget: 5,
   enableHomeDepot: 3,
   enableZillow: 3,
   enableBooking: 3,

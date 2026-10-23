@@ -1,6 +1,6 @@
 # openai-agents-scavio
 
-[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — **193 tools across 31 platforms, a URL reader and website map / crawl / batch**, with one API key.
+[Scavio](https://scavio.dev) real-time search tools for the [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) (TypeScript) — **194 tools across 31 platforms, a URL reader and website map / crawl / batch**, with one API key.
 
 Google, YouTube, Amazon, Walmart, eBay, Target, Home Depot, Reddit, X, TikTok, TikTok Shop, Instagram, Threads, LinkedIn, Kuaishou, Zillow, Redfin, Booking.com, Airbnb, Tripadvisor, Yelp, Indeed, Glassdoor, the Apple App Store, Google Play, SEC EDGAR, Companies House, G2, Capterra, Google Ads Transparency and the Meta Ad Library — plus `scavio_extract`, which reads any URL as HTML, Markdown or plain text, and five opt-in tools that map a site's URLs, crawl a whole site, or extract a list of URLs in one job.
 
@@ -12,7 +12,7 @@ Nothing is held back for the MCP server any more: every live Scavio endpoint is 
 npm install openai-agents-scavio @openai/agents zod
 ```
 
-Requires `scavio@^0.23.0` — the version that added `extract.map`, `extract.crawl` and `extract.batch` behind the callable `extract`. An older SDK cannot resolve the website tools.
+Requires `scavio@^0.27.0` — the version that added `extract.map`, `extract.crawl` and `extract.batch` behind the callable `extract`. An older SDK cannot resolve the website tools.
 
 ## Setup
 
@@ -36,7 +36,7 @@ console.log(result.finalOutput);
 
 ### Pick your platforms
 
-193 tools is far more than any one agent should carry. Every platform is gated by
+194 tools is far more than any one agent should carry. Every platform is gated by
 an `enable*` flag, all defaulting to `true` except `enableCrawl`, so disable what
 you do not need:
 
@@ -70,7 +70,7 @@ Pass `{ all: true }` to register every tool regardless of the individual flags.
 | `enableLinkedin` | 9 | `enableCapterra` | 3 |
 | `enableThreads` | 6 | `enableGoogleAds` | 3 |
 | `enableKuaishou` | 14 | `enableMetaAds` | 3 |
-| `enableEbay` | 3 | `enableTarget` | 4 |
+| `enableEbay` | 3 | `enableTarget` | 5 |
 | `enableHomeDepot` | 3 | `enableZillow` | 3 |
 | `enableBooking` | 3 | `enableTripadvisor` | 4 |
 | `enableIndeed` | 4 | `enableExtract` | 1 |
