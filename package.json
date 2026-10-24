@@ -1,7 +1,7 @@
 {
   "name": "openai-agents-scavio",
-  "version": "0.6.0",
-  "description": "193 Scavio tools for the OpenAI Agents SDK: real-time search over 31 platforms (Google, YouTube, Amazon, Walmart, eBay, Target, Zillow, Booking.com, Indeed, SEC EDGAR, G2, Meta Ad Library and more), URL extract, and website map, crawl and batch extract",
+  "version": "0.6.1",
+  "description": "198 Scavio tools for the OpenAI Agents SDK: real-time search over 33 platforms (Google, YouTube, Amazon, Walmart, eBay, Target, HEB, Kroger, Zillow, Booking.com, Indeed, SEC EDGAR, G2, Meta Ad Library and more), URL extract, and website map, crawl and batch extract",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

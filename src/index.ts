@@ -1,14 +1,15 @@
 /**
  * Scavio tools for the OpenAI Agents SDK.
  *
- * Exposes the whole Scavio API across 31 platforms - Google, YouTube, Amazon,
+ * Exposes the whole Scavio API across 33 platforms - Google, YouTube, Amazon,
  * Walmart, Reddit, TikTok, TikTok Shop, Instagram, X, LinkedIn, Threads, Kuaishou,
- * eBay, Target, Home Depot, Zillow, Redfin, Booking.com, Airbnb, Tripadvisor, Yelp,
- * Indeed, Glassdoor, App Store, Google Play, SEC EDGAR, Companies House, G2,
- * Capterra, Google Ads Transparency and the Meta Ad Library - plus the top-level
+ * eBay, Target, Home Depot, HEB, Kroger, Zillow, Redfin, Booking.com, Airbnb,
+ * Tripadvisor, Yelp, Indeed, Glassdoor, App Store, Google Play, SEC EDGAR,
+ * Companies House, G2, Capterra, Google Ads Transparency and the Meta Ad Library -
+ * plus the top-level
  * `extract` endpoint that reads any URL as HTML, Markdown or plain text.
  *
- * 194 tools over the Scavio SDK's endpoints. The seven that are not
+ * 199 tools over the Scavio SDK's endpoints. The seven that are not
  * registered are dead or duplicate surfaces: /youtube/metadata (a deprecated alias
  * of /youtube/video), /amazon/options (a keyless static marketplace list, not a
  * search), and the five retired LinkedIn endpoints, which
@@ -64,6 +65,8 @@ export interface BuildScavioToolsOptions {
   enableCapterra?: boolean;
   enableGoogleAds?: boolean;
   enableMetaAds?: boolean;
+  enableHeb?: boolean;
+  enableKroger?: boolean;
   enableExtract?: boolean;
   /**
    * Website map, crawl and batch extract (five tools: scavio_map_website,
@@ -231,6 +234,8 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
     enableCapterra = true,
     enableGoogleAds = true,
     enableMetaAds = true,
+    enableHeb = true,
+    enableKroger = true,
     enableExtract = true,
     enableCrawl = false,
     pollIntervalMs = JOB_POLL_INTERVAL_MS,
@@ -2668,6 +2673,72 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
           ad_archive_id: str("Meta ad archive id (3-25 digits, as a string)."),
         }),
         (i: SdkOpts<typeof client.metaAds.ad>) => client.metaAds.ad(i)
+      )
+    );
+  }
+
+  // HEB - 3 endpoints, 2 credits flat.
+  if (all || enableHeb) {
+    tools.push(
+      tool(
+        "HEB_SEARCH",
+        "Scavio HEB Search",
+        "Search HEB grocery products: price in cents, sale status, unit price, size, UPC, stock, EBT/SNAP eligibility, aisle location and product URL. Costs 2 credits.",
+        z.object({
+          query: str("Search keywords (1-200 characters)."),
+          page: onum("Results page, 1-based (1-100)."),
+          page_size: onum("Results per page, 1-60. Server default 30."),
+        }),
+        (i: SdkOpts<typeof client.heb.search>) => client.heb.search(i)
+      ),
+      tool(
+        "HEB_PRODUCT",
+        "Scavio HEB Product",
+        "Full HEB product detail: nutrition facts, ingredients, description, images, similar products, coupons, EBT/SNAP eligibility and breadcrumbs. Pass product_url (from search) or slug + product_id. Costs 2 credits.",
+        z.object({
+          product_url: ostr("Full or relative product URL from heb.com. Preferred over slug + product_id."),
+          product_id: ostr("HEB product id (numeric id at the end of a product URL). Requires slug."),
+          slug: ostr("Product slug (readable part of the URL). Required with product_id."),
+        }),
+        (i: SdkOpts<typeof client.heb.product>) => client.heb.product(i)
+      ),
+      tool(
+        "HEB_STORES",
+        "Scavio HEB Stores",
+        "HEB stores near a US ZIP code or city: store number, address, phone, hours, pharmacy availability, fulfillment channels, distance and store URL. Pass zip or city. Costs 2 credits.",
+        z.object({
+          zip: ostr("5-digit US ZIP code (e.g. '78701')."),
+          city: ostr("City name (e.g. 'Austin'). Pass zip or city."),
+        }),
+        (i: SdkOpts<typeof client.heb.stores>) => client.heb.stores(i)
+      )
+    );
+  }
+
+  // Kroger - 2 endpoints, 2 credits flat. Operates Kroger, Ralphs, Fred Meyer,
+  // Harris Teeter, King Soopers, Fry's and other banners.
+  if (all || enableKroger) {
+    tools.push(
+      tool(
+        "KROGER_SEARCH",
+        "Scavio Kroger Search",
+        "Search Kroger grocery products: price in cents, promo price, n-for deals, unit price, size, UPC, stock, SNAP eligibility, dietary info, rating and category. Kroger operates Kroger, Ralphs, Fred Meyer, Harris Teeter, King Soopers and Fry's. Costs 2 credits.",
+        z.object({
+          query: str("Search keywords (1-200 characters)."),
+          page: onum("Results page, 1-based (1-100)."),
+        }),
+        (i: SdkOpts<typeof client.kroger.search>) => client.kroger.search(i)
+      ),
+      tool(
+        "KROGER_PRODUCT",
+        "Scavio Kroger Product",
+        "Full Kroger product detail by URL or UPC: nutrition facts, allergens, ingredients, nutrients with daily values, description, images, rating distribution, store aisle, stock, dietary flags, SNAP eligibility, dimensions and country of origin. Costs 2 credits.",
+        z.object({
+          product_url: ostr("Full or relative product URL from kroger.com. Preferred."),
+          upc: ostr("Kroger product UPC (from search or product URLs: /p/{slug}/{upc})."),
+          slug: ostr("Product slug for readable URL. Optional with upc."),
+        }),
+        (i: SdkOpts<typeof client.kroger.product>) => client.kroger.product(i)
       )
     );
   }
