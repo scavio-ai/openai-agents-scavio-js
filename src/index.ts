@@ -67,6 +67,7 @@ export interface BuildScavioToolsOptions {
   enableMetaAds?: boolean;
   enableHeb?: boolean;
   enableKroger?: boolean;
+  enableDecathlon?: boolean;
   enableExtract?: boolean;
   /**
    * Website map, crawl and batch extract (five tools: scavio_map_website,
@@ -236,6 +237,7 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
     enableMetaAds = true,
     enableHeb = true,
     enableKroger = true,
+    enableDecathlon = true,
     enableExtract = true,
     enableCrawl = false,
     pollIntervalMs = JOB_POLL_INTERVAL_MS,
@@ -2739,6 +2741,35 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
           slug: ostr("Product slug for readable URL. Optional with upc."),
         }),
         (i: SdkOpts<typeof client.kroger.product>) => client.kroger.product(i)
+      )
+    );
+  }
+
+  // Decathlon - 2 endpoints, 2 credits flat. Sports retail across 7 country
+  // domains (FR, ES, IT, IN, UK, PT, NET).
+  if (all || enableDecathlon) {
+    tools.push(
+      tool(
+        "DECATHLON_SEARCH",
+        "Scavio Decathlon Search",
+        "Search Decathlon products by keyword across 7 country domains (FR, ES, IT, IN, UK, PT, NET). Returns product name, brand, price (cents), currency, availability, rating, review count and image. Costs 2 credits.",
+        z.object({
+          query: str("Search keywords (1-200 characters)."),
+          country: z.enum(["fr", "es", "it", "in", "uk", "pt", "net"]).describe("Country domain."),
+          page: onum("Results page, 1-based (1-50)."),
+        }),
+        (i: SdkOpts<typeof client.decathlon.search>) => client.decathlon.search(i)
+      ),
+      tool(
+        "DECATHLON_PRODUCT",
+        "Scavio Decathlon Product",
+        "Full Decathlon product detail by URL or product ID: description, images, SKU, GTIN, color, price (cents), list price, availability, offers/variants, rating, review count, category and breadcrumbs. Costs 2 credits.",
+        z.object({
+          product_url: ostr("Full or relative product URL from any Decathlon domain. Preferred."),
+          product_id: ostr("Decathlon numeric product ID."),
+          country: z.enum(["fr", "es", "it", "in", "uk", "pt", "net"]).describe("Country domain."),
+        }),
+        (i: SdkOpts<typeof client.decathlon.product>) => client.decathlon.product(i)
       )
     );
   }
