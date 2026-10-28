@@ -2685,22 +2685,24 @@ export function buildScavioTools(options: BuildScavioToolsOptions = {}) {
       tool(
         "HEB_SEARCH",
         "Scavio HEB Search",
-        "Search HEB grocery products: price in cents, sale status, unit price, size, UPC, stock, EBT/SNAP eligibility, aisle location and product URL. Costs 2 credits.",
+        "Search HEB grocery products: price in cents, sale status, unit price, size, UPC, stock, EBT/SNAP eligibility, aisle location and product URL. Pass store_id for one store's prices, stock and assortment. Costs 2 credits.",
         z.object({
           query: str("Search keywords (1-200 characters)."),
           page: onum("Results page, 1-based (1-100)."),
-          page_size: onum("Results per page, 1-60. Server default 30."),
+          page_size: onum("Results per page, 1-60. Defaults to 60."),
+          store_id: ostr("HEB store number from the HEB stores tool (store_number), e.g. '441'. Prices, stock, aisle location and assortment come from that store; the store used is echoed in data.store {store_id, name}. US only. Omit for HEB's default store."),
         }),
         (i: SdkOpts<typeof client.heb.search>) => client.heb.search(i)
       ),
       tool(
         "HEB_PRODUCT",
         "Scavio HEB Product",
-        "Full HEB product detail: nutrition facts, ingredients, description, images, similar products, coupons, EBT/SNAP eligibility and breadcrumbs. Pass product_url (from search) or slug + product_id. Costs 2 credits.",
+        "Full HEB product detail: nutrition facts, ingredients, description, images, similar products, coupons, EBT/SNAP eligibility and breadcrumbs. Pass product_url (from search) or slug + product_id; with store_id, product_id alone works and price, stock and aisle are for that store. Costs 2 credits.",
         z.object({
           product_url: ostr("Full or relative product URL from heb.com. Preferred over slug + product_id."),
-          product_id: ostr("HEB product id (numeric id at the end of a product URL). Requires slug."),
-          slug: ostr("Product slug (readable part of the URL). Required with product_id."),
+          product_id: ostr("HEB product id. Needs slug, unless store_id is set (then product_id alone works)."),
+          slug: ostr("Product slug (readable part of the URL). Required with product_id unless store_id is set."),
+          store_id: ostr("HEB store number from the HEB stores tool (store_number), e.g. '441'. Prices, stock, aisle location and assortment come from that store; the store used is echoed in data.store {store_id, name}. US only. Omit for HEB's default store."),
         }),
         (i: SdkOpts<typeof client.heb.product>) => client.heb.product(i)
       ),

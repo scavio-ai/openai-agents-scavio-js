@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { buildScavioTools } from "../dist/index.js";
 
-const TOTAL_TOOLS = 194;
+const TOTAL_TOOLS = 201;
 
 // Tool counts per enable* flag. The list doubles as the flag inventory: if a
 // platform ships without an entry here, allOff() leaves it enabled and
@@ -40,6 +40,9 @@ const PLATFORM_COUNTS = {
   enableCapterra: 3,
   enableGoogleAds: 3,
   enableMetaAds: 3,
+  enableHeb: 3,
+  enableKroger: 2,
+  enableDecathlon: 2,
   enableExtract: 1,
   enableCrawl: 5,
 };
@@ -130,6 +133,12 @@ test("reddit search exposes query and cursor only", () => {
   assert.ok(search);
   // The API reads query and cursor only; type/sort were stripped on the wire.
   assert.deepEqual(Object.keys(props(search)), ["query", "cursor"]);
+});
+
+test("heb search and product take store_id", () => {
+  const tools = byName();
+  assert.deepEqual(Object.keys(props(tools.get("scavio_heb_search"))), ["query", "page", "page_size", "store_id"]);
+  assert.deepEqual(Object.keys(props(tools.get("scavio_heb_product"))), ["product_url", "product_id", "slug", "store_id"]);
 });
 
 test("reddit flag gates the reddit tools", () => {

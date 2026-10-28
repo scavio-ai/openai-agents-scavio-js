@@ -16,7 +16,7 @@ function offAll() {
     "Google", "Amazon", "Walmart", "Youtube", "Reddit", "Tiktok", "TiktokShop", "Instagram", "X",
     "Linkedin", "Threads", "Kuaishou", "Ebay", "Target", "HomeDepot", "Zillow", "Booking",
     "Tripadvisor", "Indeed", "Airbnb", "Glassdoor", "Yelp", "AppStore", "GooglePlay", "Sec",
-    "Redfin", "CompaniesHouse", "G2", "Capterra", "GoogleAds", "MetaAds", "Extract",
+    "Redfin", "CompaniesHouse", "G2", "Capterra", "GoogleAds", "MetaAds", "Heb", "Kroger", "Decathlon", "Extract",
   ];
   return Object.fromEntries(flags.map((f) => ["enable" + f, false]));
 }
