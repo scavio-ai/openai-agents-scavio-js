@@ -160,13 +160,13 @@ the `scavio` SDK (`extract.cancelCrawl`, `webhook_url`, `idempotencyKey`) and th
 ## Credits
 
 Most tools cost 1 credit per call: every Google, Amazon, Reddit, X, TikTok, TikTok
-Shop, eBay, Target, Zillow, Redfin, Airbnb, Booking.com, App Store, Glassdoor, SEC
+Shop, eBay, Target, Zillow, Redfin, Airbnb, Booking.com, App Store, SEC
 EDGAR, Companies House, Google Ads Transparency and Meta Ad Library tool, plus most
 YouTube and LinkedIn ones. The exceptions:
 
 | Tool | Credits |
 |---|---|
-| Home Depot, Google Play, Tripadvisor, Yelp, Indeed, Capterra (all tools) | 2 |
+| Home Depot, Google Play, Tripadvisor, Yelp, Indeed, Capterra, Glassdoor (all tools) | 2 |
 | `scavio_youtube_search`, `scavio_youtube_shorts` | 2 |
 | `scavio_youtube_streams` | 3 |
 | `scavio_youtube_transcript` | 5 |
